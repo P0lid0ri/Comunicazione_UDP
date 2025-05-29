@@ -1,18 +1,25 @@
 package udptime;
 
-import java.io.IOException;
-import java.net.BindException;
-import java.net.DatagramPacket;
-import java.net.DatagramSocket;
-import java.net.InetAddress;
-import java.net.SocketException;
+import java.io.*;
+import java.net.*;
 import java.util.Date;
 
 public class Server {
-    private int port = 2000;
     private DatagramSocket dSocket;
 
-    public Server() {
+    DatagramPacket inPacket;
+    byte[] buffernIn;
+    public static final String giallo = "\u001B[33m";
+
+    public static final String reset = "\u001B[0m";
+
+    String messageIn;
+
+    private InputStream in ;
+    private OutputStream out ;
+
+
+    public Server(int port) {
         try {
             dSocket = new DatagramSocket(port);
             System.out.println("Apertura porta in corso!");
@@ -21,30 +28,36 @@ public class Server {
         } catch (SocketException e) {
             System.err.println("Errore Socket");
         }
+        System.out.println("Server in ascolto sulla porta " + port + "!\n");
     }
 
-    public void ascolta() {
-        try {
-            while (true) {
-                System.out.println("Server in ascolto sulla porta " + port + "!");
-                byte[] bufferIn = new byte[256];
-
-                DatagramPacket inPacket = new DatagramPacket(bufferIn, bufferIn.length);
+    public void receive() {
+        while (true) {
+            buffernIn= new byte[256];
+            inPacket = new DatagramPacket(buffernIn, buffernIn.length);
+            try {
                 dSocket.receive(inPacket);
-
-                InetAddress clientAddress = inPacket.getAddress();
-                int clientPort = inPacket.getPort();
-                String messageIn = new String(inPacket.getData(), 0, inPacket.getLength());
-                System.out.println("SONO IL CLIENT " + clientAddress + ":" + clientPort + "> " + messageIn);
-
-                String messageOut = new Date().toString();
-                byte[] bufferOut = messageOut.getBytes();
-                DatagramPacket outPacket = new DatagramPacket(bufferOut, bufferOut.length, clientAddress, clientPort);
-                dSocket.send(outPacket);
-                System.out.println("Risposta inviata!");
+            }catch (IOException e ){
+                System.err.println("Errore");
             }
-        } catch (IOException e) {
-            System.err.println("Errore di I/O");
+            int clientPort = inPacket.getPort();
+            InetAddress clientAddress = inPacket.getAddress();
+            messageIn = new String(inPacket.getData(),0,inPacket.getLength());
+            System.out.println("Messaggio Client "+clientAddress+":"+ clientPort+":"+giallo+messageIn+reset);
+            send();
+            }
+    }
+    public void send(){
+        InetAddress clientAddress = inPacket.getAddress();
+        int clientPort = inPacket.getPort();
+        Date d=new Date();
+        String messageOut= d.toString();
+        byte[] bufferOut =messageOut.getBytes();
+        DatagramPacket outPacket = new DatagramPacket(bufferOut, bufferOut.length,clientAddress,clientPort);
+        try{
+            dSocket.send(outPacket);
+        }catch(IOException e){
+            System.err.println("Errore");
         }
     }
 }
